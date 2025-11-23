@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SQL Quiz — Danny's Dinner DB</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --accent:#10b981; --muted:#94a3b8; --panel:#071022;
+    --glass: rgba(255,255,255,0.03);
+    font-family: Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071027 0%, #061423 100%);color:#e6eef6}
+  .app{display:flex;flex-direction:column;height:100vh}
+  .navbar{
+    display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.03)
+  }
+  .brand{font-weight:700;display:flex;align-items:center;gap:10px}
+  .brand .dot{width:10px;height:10px;background:var(--accent);border-radius:3px;box-shadow:0 0 12px var(--accent);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+  .navbar .controls{display:flex;gap:8px;align-items:center}
+  button.btn{
+    background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer;transition:all 0.3s ease
+  }
+  button.btn:hover{border-color:rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);transform:translateY(-1px)}
+  button.btn.primary{background:var(--accent);border:none;color:#022; font-weight:600}
+  button.btn.primary:hover{background:#0ea573;box-shadow:0 4px 12px rgba(16,185,129,0.3)}
+  .container{display:flex;flex:1;gap:18px;padding:18px;box-sizing:border-box}
+  .left,.right{background:var(--card);border-radius:12px;padding:18px;box-shadow: 0 6px 30px rgba(2,6,23,0.6)}
+  .left{flex:0 0 44%;display:flex;flex-direction:column;gap:12px;min-width:360px}
+  .right{flex:1;display:flex;flex-direction:column;gap:12px;min-width:320px}
+  .question-card{background:var(--glass);padding:16px;border-radius:10px;animation:fadeInSlide 0.5s ease}
+  @keyframes fadeInSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .q-title{font-size:18px;font-weight:600;margin-bottom:8px}
+  .q-desc{color:var(--muted);font-size:13px}
+  .correct-query{background:#02121b;padding:12px;border-radius:8px;white-space:pre-wrap;color:#c8f7ea;font-family:monospace;margin-top:8px;animation:slideDown 0.4s ease}
+  @keyframes slideDown{from{opacity:0;max-height:0}to{opacity:1;max-height:500px}}
+  .nav-row{display:flex;gap:8px;align-items:center;margin-top:auto}
+  .nav-row .pager{color:var(--muted);font-size:13px}
+  .options{display:flex;flex-direction:column;gap:10px}
+  .option{
+    background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);cursor:pointer;font-family:monospace;white-space:pre-wrap;transition:all 0.3s ease;position:relative;overflow:hidden
+  }
+  .option:hover{border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);transform:translateX(4px)}
+  .option.correct{
+    outline:2px solid rgba(16,185,129,0.4);background:linear-gradient(90deg, rgba(16,185,129,0.1), transparent);animation:correctPulse 0.6s ease
+  }
+  .option.correct::before{
+    content:'✓';position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:24px;color:#10b981;animation:checkmark 0.5s ease
+  }
+  @keyframes correctPulse{
+    0%{transform:scale(1)}
+    50%{transform:scale(1.02);box-shadow:0 0 20px rgba(16,185,129,0.4)}
+    100%{transform:scale(1)}
+  }
+  @keyframes checkmark{from{opacity:0;transform:translateY(-50%) scale(0)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+  .option.wrong{
+    outline:2px solid rgba(239,68,68,0.4);background:linear-gradient(90deg, rgba(239,68,68,0.08), transparent);animation:shake 0.5s ease
+  }
+  .option.wrong::before{
+    content:'✗';position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:24px;color:#ef4444;animation:crossmark 0.5s ease
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-8px)}
+    75%{transform:translateX(8px)}
+  }
+  @keyframes crossmark{from{opacity:0;transform:translateY(-50%) rotate(-90deg)}to{opacity:1;transform:translateY(-50%) rotate(0)}}
+  .table-wrap{overflow:auto;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-radius:8px;padding:8px;border:1px solid rgba(255,255,255,0.02);animation:fadeIn 0.5s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  table{width:100%;border-collapse:collapse;color:#eafaf1}
+  th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:13px}
+  th{color:var(--muted);font-weight:600}
+  tr{transition:background 0.2s ease}
+  tr:hover{background:rgba(255,255,255,0.02)}
+  .meta{color:var(--muted);font-size:13px;margin-top:8px}
+  .schema-card{background:var(--glass);padding:16px;border-radius:10px;margin-bottom:12px}
+  .schema-title{font-size:16px;font-weight:600;color:#10b981;margin-bottom:8px}
+  .schema-desc{font-size:13px;color:var(--muted);margin-bottom:12px}
+  .table-schema{background:rgba(0,16,26,0.5);padding:14px;border-radius:8px;margin-bottom:10px;border:1px solid rgba(153,194,176,0.2)}
+  .table-schema-title{font-weight:600;color:#fff;font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .table-schema-title::before{content:'📋';font-size:16px}
+  .field{font-family:monospace;font-size:12px;color:#c8f7ea;padding:4px 0;display:flex;gap:8px}
+  .field-name{color:#10b981;font-weight:600}
+  .field-type{color:#94a3b8}
+  .relationship{background:rgba(16,185,129,0.05);padding:10px;border-radius:6px;border-left:3px solid var(--accent);font-size:12px;color:var(--muted);margin-top:8px}
+  .small{font-size:12px;color:var(--muted)}
+  .top-right-controls{display:flex;gap:8px;align-items:center}
+  .explain{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;color:var(--muted);font-size:13px;animation:fadeIn 0.5s ease}
+  footer{padding:12px;text-align:center;color:var(--muted);font-size:12px}
+  .success-banner{
+    background:linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+    border:1px solid rgba(16,185,129,0.3);padding:12px;border-radius:8px;margin-top:12px;animation:slideDown 0.4s ease;display:flex;align-items:center;gap:10px
+  }
+  .success-banner::before{content:'🎉';font-size:20px}
+  @media(max-width:900px){.container{flex-direction:column}.left{flex-basis:auto;width:auto}}
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="navbar">
+      <div class="brand"><div class="dot"></div> Danny's Dinner — SQL Quiz</div>
+      <div class="controls">
+        <button class="btn" id="schemaBtn">📊 Schema</button>
+        <button class="btn primary" id="resetBtn">Reset Question</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="left">
+        <div class="question-card">
+          <div class="q-title" id="qTitle">Question title</div>
+          <div class="q-desc" id="qDesc">Question description (SQL task)</div>
+
+          <div id="correctArea" style="display:none">
+            <div class="small" style="margin-top:10px">✅ Correct SQL:</div>
+            <div class="correct-query" id="correctQuery"></div>
+          </div>
+
+          <div id="successBanner" style="display:none" class="success-banner">
+            <span style="font-weight:600;color:#10b981">Correct!</span>
+            <span style="color:var(--muted);font-size:13px">Great job on this query!</span>
+          </div>
+
+          <div class="meta" id="usecase"></div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="prevBtn">← Previous</button>
+            <button class="btn" id="nextBtn">Next →</button>
+            <div class="pager" id="pager"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;color:var(--muted);font-size:13px">
+          💡 Select the correct SQL query from the options. After answering correctly, you'll see the solution and results!
+        </div>
+      </div>
+
+      <div class="right">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:600">Choose Your Answer</div>
+          <div class="small">Pick the SQL query that answers the question</div>
+        </div>
+
+        <div id="options" class="options"></div>
+
+        <div id="resultArea" style="display:none;margin-top:12px">
+          <div style="font-weight:600;margin-bottom:8px">📊 Query Results:</div>
+          <div class="table-wrap" id="tableWrap"></div>
+          <div class="explain" id="explainArea"></div>
+        </div>
+
+        <div id="schemaArea" style="display:none;margin-top:12px">
+          <div style="font-weight:600;margin-bottom:12px;font-size:18px;color:#10b981">Database Schema</div>
+          
+          <div class="schema-card">
+            <div class="schema-title">Overview</div>
+            <div class="schema-desc">Danny's Dinner database contains 3 tables tracking customer orders, menu items, and membership data.</div>
+          </div>
+
+          <div class="table-schema">
+            <div class="table-schema-title">sales</div>
+            <div class="field"><span class="field-name">customer_id</span><span class="field-type">VARCHAR</span><span style="color:#64748b">— Customer identifier (A, B, C)</span></div>
+            <div class="field"><span class="field-name">order_date</span><span class="field-type">DATE</span><span style="color:#64748b">— When the order was placed</span></div>
+            <div class="field"><span class="field-name">productid</span><span class="field-type">INTEGER</span><span style="color:#64748b">— Product ordered (foreign key)</span></div>
+            <div class="relationship">🔗 Links to <strong>menu</strong> table via <code>productid</code></div>
+          </div>
+
+          <div class="table-schema">
+            <div class="table-schema-title">menu</div>
+            <div class="field"><span class="field-name">productid</span><span class="field-type">INTEGER</span><span style="color:#64748b">— Unique product identifier</span></div>
+            <div class="field"><span class="field-name">product_name</span><span class="field-type">VARCHAR</span><span style="color:#64748b">— Item name (sushi, curry, ramen)</span></div>
+            <div class="field"><span class="field-name">price</span><span class="field-type">INTEGER</span><span style="color:#64748b">— Price in dollars</span></div>
+          </div>
+
+          <div class="table-schema">
+            <div class="table-schema-title">members</div>
+            <div class="field"><span class="field-name">customer_id</span><span class="field-type">VARCHAR</span><span style="color:#64748b">— Customer identifier</span></div>
+            <div class="field"><span class="field-name">join_date</span><span class="field-type">DATE</span><span style="color:#64748b">— Membership enrollment date</span></div>
+            <div class="relationship">🔗 Links to <strong>sales</strong> table via <code>customer_id</code></div>
+          </div>
+
+          <div class="schema-card" style="margin-top:12px">
+            <div class="schema-desc" style="margin:0">
+              <strong>Note:</strong> Not all customers are members. Use LEFT JOIN when querying members to include non-member orders.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>SQL Quiz • Data embedded from "Danny's Dinner" sample dataset</footer>
+  </div>
+
+<script>
+const QUESTIONS = [
+  {
+    id:1,
+    title: "1) What is the total amount each customer spent at the restaurant?",
+    desc: "Show total spent per customer (join sales and menu, sum prices).",
+    correctSQL:`select distinct s.customer_id , sum(m.price) as totalamount\nfrom sales s\njoin menu m on s.productid=m.productid\ngroup by customer_id;`,
+    options:[
+      {id:'1a', sql:`select customer_id, sum(price) as total from sales group by customer_id;`, correct:false},
+      {id:'1b', sql:`select distinct s.customer_id , sum(m.price) as totalamount from sales s join menu m on s.productid=m.productid group by customer_id;`, correct:true},
+      {id:'1c', sql:`select customer_id, count(*) as orders from sales group by customer_id;`, correct:false}
+    ],
+    result: [
+      {customer_id:'A', totalamount:76},
+      {customer_id:'B', totalamount:74},
+      {customer_id:'C', totalamount:36}
+    ],
+    explain: "💡 Use join between sales and menu and sum(price) grouped by customer to compute total spend per customer. Useful to compute lifetime value."
+  },
+
+  {
+    id:2,
+    title: "2) How many days has each customer visited the restaurant?",
+    desc: "Count distinct order_date per customer.",
+    correctSQL:`select customer_id , count(distinct(order_date)) as no_f_days_visited from sales group by customer_id;`,
+    options:[
+      {id:'2a', sql:`select customer_id, count(order_date) as visits from sales group by customer_id;`, correct:false},
+      {id:'2b', sql:`select customer_id , count(distinct(order_date)) as no_f_days_visited from sales group by customer_id;`, correct:true},
+      {id:'2c', sql:`select customer_id, min(order_date) as first_visit from sales group by customer_id;`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', no_f_days_visited:4},
+      {customer_id:'B', no_f_days_visited:6},
+      {customer_id:'C', no_f_days_visited:2}
+    ],
+    explain: "💡 Counting distinct dates gives number of unique visit days (multiple orders same day count once). Useful for retention/visits analysis."
+  },
+
+  {
+    id:3,
+    title: "3) What was the first item from the menu purchased by each customer?",
+    desc: "Use ROW_NUMBER or group by to pick earliest order per customer.",
+    correctSQL:`with cte as (\n  select s.customer_id , m.product_name,\n         row_number() over(partition by s.customer_id order by s.order_date ) rownum\n  from sales s\n  join menu m on s.productid = m.productid\n)\nselect customer_id, product_name from cte where rownum=1;`,
+    options:[
+      {id:'3a', sql:`select customer_id, min(order_date) from sales group by customer_id;`, correct:false},
+      {id:'3b', sql:`with cte as (select s.customer_id , m.product_name, row_number() over(partition by s.customer_id order by s.order_date ) rownum from sales s join menu m on s.productid = m.productid) select customer_id,product_name from cte where rownum=1;`, correct:true},
+      {id:'3c', sql:`select customer_id, product_name from sales join menu on sales.productid=menu.productid`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', product_name:'sushi'},
+      {customer_id:'B', product_name:'curry'},
+      {customer_id:'C', product_name:'ramen'}
+    ],
+    explain: "💡 ROW_NUMBER over (partition by customer order by date) picks earliest purchase per customer."
+  },
+
+  {
+    id:4,
+    title: "4) What is the most purchased item on the menu and how many times was it purchased (all customers)?",
+    desc: "Aggregate by product_name, count orders, order desc, limit 1.",
+    correctSQL:`Select m.product_name , count(m.product_name) as odr_count\n from sales s\n JOIN menu m \n on s.productid=m.productid\n group by m.product_name\n order by count(m.product_name) desc\n limit 1;`,
+    options:[
+      {id:'4a', sql:`select product_name, sum(price) from sales join menu using(productid) group by product_name;`, correct:false},
+      {id:'4b', sql:`Select m.product_name , count(*) as odr_count from sales s join menu m on s.productid=m.productid group by m.product_name order by odr_count desc limit 1;`, correct:true},
+      {id:'4c', sql:`select productid, count(*) from sales group by productid;`, correct:false}
+    ],
+    result:[
+      {product_name:'ramen', odr_count:8}
+    ],
+    explain: "💡 Ramen was ordered 8 times across all customers — useful for inventory & popular item promotions."
+  },
+
+  {
+    id:5,
+    title: "5) Which item was the most popular for each customer?",
+    desc: "Find per-customer most ordered menu item(s) — use DENSE_RANK or MAX over counts.",
+    correctSQL:`with cte as (select s.customer_id , m.product_name, count(*) as order_count, DENSE_RANK() over (partition by s.customer_id order by count(*) desc) as rn from sales s join menu m on s.productid=m.productid group by s.customer_id,m.product_name) select customer_id , product_name from cte where rn=1;`,
+    options:[
+      {id:'5a', sql:`select customer_id, product_name, count(*) as c from sales join menu on sales.productid=menu.productid group by customer_id,product_name`, correct:false},
+      {id:'5b', sql:`with cte as (select s.customer_id , m.product_name, count(*) as order_count, DENSE_RANK() over (partition by s.customer_id order by count(*) desc) as rn from sales s join menu m on s.productid=m.productid group by s.customer_id,m.product_name) select customer_id , product_name from cte where rn=1;`, correct:true},
+      {id:'5c', sql:`select customer_id, max(productid) from sales group by customer_id`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', product_name:'ramen'},
+      {customer_id:'B', product_name:'curry'},
+      {customer_id:'C', product_name:'ramen'}
+    ],
+    explain: "💡 Per-customer popularity helps personalized recommendations and loyalty targeting."
+  },
+
+  {
+    id:6,
+    title: "6) Which item was purchased first by the customer after they became a member?",
+    desc: "Join sales, menu, members; filter order_date > join_date; pick earliest per customer.",
+    correctSQL:`with orders as (\n  select s.customer_id, m.product_name , s.order_date, mb.join_date,\n    DENSE_RANK() over (partition by s.customer_id order by s.order_date) as rn\n  from menu m \n  join sales s on s.productid = m.productid\n  join members mb on s.customer_id=mb.customer_id\n  where s.order_date > mb.join_date\n)\nselect customer_id, product_name from orders where rn=1;`,
+    options:[
+      {id:'6a', sql:`select * from sales`, correct:false},
+      {id:'6b', sql:`with orders as (select s.customer_id, m.product_name , s.order_date, mb.join_date, DENSE_RANK() over (partition by s.customer_id order by s.order_date) as rn from menu m join sales s on s.productid = m.productid join members mb on s.customer_id=mb.customer_id where s.order_date > mb.join_date) select customer_id, product_name from orders where rn=1;`, correct:true},
+      {id:'6c', sql:`select customer_id, product_name from sales join menu on sales.productid=menu.productid where order_date >= '2021-01-01'`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', product_name:'ramen'},
+      {customer_id:'B', product_name:'sushi'}
+    ],
+    explain: "💡 Identify first purchase after enrollment — useful to track welcome-offer usage."
+  },
+
+  {
+    id:7,
+    title: "7) Which item was purchased just before the customer became a member?",
+    desc: "Similar to previous but pick the last order where order_date < join_date.",
+    correctSQL:`with cte as (\n  select s.customer_id, m.product_name , s.order_date, mb.join_date,\n    DENSE_RANK() over (partition by s.customer_id order by s.order_date desc) as rn\n  from menu m \n  join sales s on s.productid = m.productid\n  join members mb on s.customer_id=mb.customer_id\n  where s.order_date < mb.join_date\n)\nselect customer_id, product_name from cte  where rn=1;`,
+    options:[
+      {id:'7a', sql:`with cte as (select s.customer_id, m.product_name , s.order_date, mb.join_date, DENSE_RANK() over (partition by s.customer_id order by s.order_date desc) as rn from menu m join sales s on s.productid = m.productid join members mb on s.customer_id=mb.customer_id where s.order_date < mb.join_date) select customer_id, product_name from cte where rn=1;`, correct:true},
+      {id:'7b', sql:`select customer_id, min(order_date) from sales where order_date < join_date`, correct:false},
+      {id:'7c', sql:`select * from members`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', product_name:'curry'},
+      {customer_id:'B', product_name:'sushi'}
+    ],
+    explain: "💡 Find order immediately before member enrollment — useful to analyze conversion behavior."
+  },
+
+  {
+    id:8,
+    title: "8) Total items and amount spent for each member before they became a member",
+    desc: "Aggregate counts and sums for orders with order_date < join_date for members only.",
+    correctSQL:`select s.customer_id , count(m.productid) as items_ordered , sum(price) as total_amount from menu m join sales s on m.productid=s.productid join members mb on s.customer_id= mb.customer_id where s.order_date<mb.join_date group by customer_id ;`,
+    options:[
+      {id:'8a', sql:`select customer_id, count(*) from sales group by customer_id;`, correct:false},
+      {id:'8b', sql:`select s.customer_id , count(m.productid) as items_ordered , sum(price) as total_amount from menu m join sales s on m.productid=s.productid join members mb on s.customer_id= mb.customer_id where s.order_date<mb.join_date group by customer_id ;`, correct:true},
+      {id:'8c', sql:`select * from menu`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', items_ordered:2, total_amount:25},
+      {customer_id:'B', items_ordered:3, total_amount:40}
+    ],
+    explain: "💡 Shows how much each member spent before joining — can help analyze the lift after joining."
+  },
+
+  {
+    id:9,
+    title: "9) If each $1 spent = 10 points and sushi has a 2x multiplier — how many points would each customer have?",
+    desc: "Points per row: price*10, but sushi doubles points. Sum per customer.",
+    correctSQL:`select s.customer_id, m.product_name , m.price,\ncase\n when m.product_name = 'sushi' then m.price*10*2\n else m.price*10\n end as points\n from sales s\n join menu m on s.productid=m.productid;`,
+    options:[
+      {id:'9a', sql:`select customer_id, sum(case when product_name='sushi' then price*20 else price*10 end) points from sales join menu using(productid) group by customer_id;`, correct:true},
+      {id:'9b', sql:`select customer_id, sum(price) points from sales group by customer_id;`, correct:false},
+      {id:'9c', sql:`select product_name, count(*) from sales join menu using(productid) group by product_name;`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', points:860},
+      {customer_id:'B', points:940},
+      {customer_id:'C', points:360}
+    ],
+    explain: "💡 Each $1 = 10 points; sushi doubles points. This query is useful to compute loyalty points."
+  },
+
+  {
+    id:10,
+    title: "10) In the first week after a customer joins they earn 2x points on all items (including join date). How many points do customers A and B have at the end of January?",
+    desc: "Within 7 days after join_date (inclusive) multipliers apply to all items. Otherwise only sushi doubles points.",
+    correctSQL:`with cte as (\n  select s.customer_id , m.product_name , s.order_date , mb.join_date ,\n   case\n     when s.order_date between mb.join_date and date_add(mb.join_date , interval 7 day) then m.price*10*2\n     when m.product_name='sushi' then m.price*10*2\n     else m.price*10\n   end as points\n  from menu m \n  join sales s on s.productid=m.productid\n  join members mb on s.customer_id=mb.customer_id\n  where s.order_date < '2021-02-01')\nselect customer_id , sum(points) as total_points\nfrom cte group by customer_id;`,
+    options:[
+      {id:'10a', sql:`select customer_id, sum(points) from (select s.customer_id, s.order_date, m.product_name, m.price, case when s.order_date between mb.join_date and date_add(mb.join_date, interval 7 day) then m.price*20 when m.product_name='sushi' then m.price*20 else m.price*10 end points from sales s join menu m on s.productid=m.productid join members mb on s.customer_id=mb.customer_id where s.order_date < '2021-02-01') x group by customer_id;`, correct:true},
+      {id:'10b', sql:`select customer_id, sum(price)*10 as points from sales join menu using(productid) group by customer_id;`, correct:false},
+      {id:'10c', sql:`select customer_id, sum(case when product_name='sushi' then price*2 else price end) as pts from sales join menu using(productid) group by customer_id;`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', points:1370},
+      {customer_id:'B', points:940}
+    ],
+    explain: "💡 First-week double points dramatically increases points for new members — track for promotion effectiveness."
+  },
+
+  {
+    id:11,
+    title: "11) Show product name & price for each order date and indicate whether the customer was a member on that order date.",
+    desc: "Join, and flag membership status per order.",
+    correctSQL:`select s.customer_id ,m.product_name, m.price , s.order_date,\ncase when s.order_date >= mb.join_date then 'Y' else 'N' end as member\nfrom menu m\njoin sales s on s.productid = m.productid\nleft join members mb on mb.customer_id = s.customer_id;`,
+    options:[
+      {id:'11a', sql:`select s.customer_id ,m.product_name, m.price , s.order_date, case when s.order_date >= mb.join_date then 'Y' else 'N' end as member from menu m join sales s on s.productid = m.productid left join members mb on mb.customer_id = s.customer_id;`, correct:true},
+      {id:'11b', sql:`select * from sales`, correct:false},
+      {id:'11c', sql:`select customer_id,join_date from members`, correct:false}
+    ],
+    result:[
+      {customer_id:'A', product_name:'sushi', price:10, order_date:'2021-01-01', member:'N'},
+      {customer_id:'A', product_name:'curry', price:15, order_date:'2021-01-01', member:'N'},
+      {customer_id:'A', product_name:'curry', price:15, order_date:'2021-01-07', member:'Y'},
+      {customer_id:'A', product_name:'ramen', price:12, order_date:'2021-01-10', member:'Y'},
+      {customer_id:'A', product_name:'ramen', price:12, order_date:'2021-01-11', member:'Y'},
+      {customer_id:'A', product_name:'ramen', price:12, order_date:'2021-01-11', member:'Y'},
+      {customer_id:'B', product_name:'curry', price:15, order_date:'2021-01-01', member:'N'},
+      {customer_id:'B', product_name:'curry', price:15, order_date:'2021-01-02', member:'N'},
+      {customer_id:'B', product_name:'sushi', price:10, order_date:'2021-01-04', member:'N'},
+      {customer_id:'B', product_name:'sushi', price:10, order_date:'2021-01-11', member:'Y'},
+      {customer_id:'B', product_name:'ramen', price:12, order_date:'2021-01-16', member:'Y'},
+      {customer_id:'B', product_name:'ramen', price:12, order_date:'2021-02-01', member:'Y'},
+      {customer_id:'C', product_name:'ramen', price:12, order_date:'2021-01-01', member:'N'},
+      {customer_id:'C', product_name:'ramen', price:12, order_date:'2021-01-01', member:'N'},
+      {customer_id:'C', product_name:'ramen', price:12, order_date:'2021-01-07', member:'N'}
+    ],
+    explain: "💡 A per-order membership flag helps analyze orders by member vs non-member."
+  }
+];
+
+let idx = 0;
+const totalQ = QUESTIONS.length;
+
+const qTitle = document.getElementById('qTitle');
+const qDesc = document.getElementById('qDesc');
+const optionsEl = document.getElementById('options');
+const correctArea = document.getElementById('correctArea');
+const correctQuery = document.getElementById('correctQuery');
+const resultArea = document.getElementById('resultArea');
+const tableWrap = document.getElementById('tableWrap');
+const explainArea = document.getElementById('explainArea');
+const pager = document.getElementById('pager');
+const usecase = document.getElementById('usecase');
+const schemaBtn = document.getElementById('schemaBtn');
+const schemaArea = document.getElementById('schemaArea');
+const resetBtn = document.getElementById('resetBtn');
+const successBanner = document.getElementById('successBanner');
+
+function renderQuestion(i){
+  const q = QUESTIONS[i];
+  idx = i;
+  qTitle.textContent = q.title;
+  qDesc.textContent = q.desc;
+  pager.textContent = `Question ${i+1} / ${totalQ}`;
+  correctArea.style.display = 'none';
+  resultArea.style.display = 'none';
+  schemaArea.style.display = 'none';
+  successBanner.style.display = 'none';
+  usecase.textContent = '';
+  optionsEl.innerHTML = '';
+  q.options.forEach(opt=>{
+    const b = document.createElement('div');
+    b.className = 'option';
+    b.dataset.optid = opt.id;
+    b.innerText = opt.sql;
+    b.addEventListener('click', ()=> selectOption(opt.id));
+    optionsEl.appendChild(b);
+  });
+}
+
+function selectOption(optid){
+  const q = QUESTIONS[idx];
+  const opt = q.options.find(x=>x.id===optid);
+  document.querySelectorAll('.option').forEach(o=>o.classList.remove('correct','wrong'));
+  const el = Array.from(document.querySelectorAll('.option')).find(d=>d.dataset.optid===optid);
+  if(!el) return;
+  if(opt.correct){
+    el.classList.add('correct');
+    correctArea.style.display = 'block';
+    correctQuery.textContent = q.correctSQL;
+    successBanner.style.display = 'flex';
+    resultArea.style.display = 'block';
+    renderTable(q.result);
+    explainArea.textContent = q.explain;
+    usecase.textContent = q.explain;
+  } else {
+    el.classList.add('wrong');
+    explainArea.textContent = "❌ Wrong answer — try again.";
+    resultArea.style.display = 'none';
+  }
+}
+
+function renderTable(rows){
+  if(!rows || rows.length===0){
+    tableWrap.innerHTML = '<div class="small">No rows returned</div>';
+    return;
+  }
+  const keys = Object.keys(rows[0]);
+  let html = '<table><thead><tr>';
+  keys.forEach(k=> html += `<th>${escapeHtml(k)}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach(r=>{
+    html += '<tr>';
+    keys.forEach(k=> html += `<td>${escapeHtml(String(r[k]===undefined ? '' : r[k]))}</td>`);
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  tableWrap.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+
+document.getElementById('prevBtn').addEventListener('click', ()=>{
+  const n = Math.max(0, idx-1);
+  renderQuestion(n);
+});
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  const n = Math.min(totalQ-1, idx+1);
+  renderQuestion(n);
+});
+schemaBtn.addEventListener('click', ()=>{
+  schemaArea.style.display = schemaArea.style.display==='block' ? 'none' : 'block';
+});
+resetBtn.addEventListener('click', ()=>{
+  renderQuestion(idx);
+});
+
+renderQuestion(0);
+
+</script>
+</body>
+</html>
